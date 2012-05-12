@@ -1,7 +1,7 @@
 library(RCurl)
-my.read.csv <- function(theurl){
+ssl.read.csv <- function(theurl, ...){
   # Handle SSL
-  read.csv(textConnection(getURL(theurl)))
+  read.csv(textConnection(getURL(theurl)), ...)
 }
 
 # Columns with mappings
@@ -18,7 +18,7 @@ getCsvUrl <- function(theUrl){
 
 mappings <- (function(){
   # Load the mappings spreadsheet
-  mappings <- my.read.csv('headers.csv', as.is = T)
+  mappings <- read.csv('headers.csv', as.is = T)
   mappings$CsvUrl <- sapply(mappings$DataUrl, getCsvUrl)
   rownames(mappings) <- mappings$CsvUrl
   mappings
@@ -26,7 +26,7 @@ mappings <- (function(){
 
 remap <- function (rowname){
   # Download a particular CSV and rearrange the columns.
-  my.read.csv(mappings[rowname, 'CsvUrl'])[mappings[rowname, MAPPING_COLUMNS]]
+  ssl.read.csv(mappings[rowname, 'CsvUrl'])[MAPPING_COLUMNS]
 }
 
 combined.and.remapped <- Reduce(function(a, b){
