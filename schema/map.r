@@ -1,7 +1,7 @@
 library(RCurl)
 ssl.read.csv <- function(theurl, ...){
   # Handle SSL
-  read.csv(textConnection(getURL(theurl)), ...)
+  read.csv(textConnection(getURL(theurl, ssl.verifypeer = F)), ...)
 }
 
 # Columns with mappings
@@ -24,11 +24,33 @@ mappings <- (function(){
   mappings
 })()
 
+# Weird rows
+mappings <- subset(mappings,
+  CsvUrl != 'https://data.cityofchicago.org/api/views/bebh-exuy/rows.csv?accessType=DOWNLOAD' &
+  CsvUrl != 'https://data.cityofchicago.org/api/views/meks-hp6f/rows.csv?accessType=DOWNLOAD'
+)
+
 remap <- function (rowname){
   # Download a particular CSV and rearrange the columns.
-  ssl.read.csv(mappings[rowname, 'CsvUrl'])[MAPPING_COLUMNS]
+  # print(rowname)
+  remapped.cols <- unlist(mappings[rowname, MAPPING_COLUMNS], use.names = F)
+  remapped.cols <- remapped.cols[1:(length(remapped.cols)-1)] # Remove CsvUrl
+  remapped.cols[remapped.cols == ''] <- 'NA' 
+  df <- ssl.read.csv(mappings[rowname, 'CsvUrl'], as.is = T)
+  df['NA'] <- NA
+# foo <- t(data.frame(
+#   sort(as.vector(remapped.cols)),
+#   c(sort(names(df)), NA)
+# ))
+  out <- df[remapped.cols]
+  out$CsvUrl <- rowname
+  out
 }
 
 combined.and.remapped <- Reduce(function(a, b){
-  rbind(a, remap(b))
-},rownames(mappings), subset(mappings, F))
+  df <- remap(b)
+  #print(colnames(df))
+  #print(names(a))
+  names(df) <- names(a) # You didn't see anything....
+  rbind(a, df)
+},rownames(mappings), subset(mappings, F)[MAPPING_COLUMNS])
